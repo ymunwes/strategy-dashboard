@@ -1,50 +1,32 @@
-name: Daily Benchmark Update
-<<<<<<< HEAD
-=======
+name: Nightly Benchmark Update
 
->>>>>>> 0d76c44 (fix: update deployment workflow to Node 20)
 on:
   schedule:
-    - cron: '0 23 * * 1-5' # 23:00 UTC (6:00 PM ET) every weekday
-  workflow_dispatch: # Allow manual trigger
-<<<<<<< HEAD
-=======
+    - cron: '0 0 * * *' # Runs at midnight UTC
+  workflow_dispatch:
 
->>>>>>> 0d76c44 (fix: update deployment workflow to Node 20)
 jobs:
   update-benchmarks:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-<<<<<<< HEAD
-=======
 
->>>>>>> 0d76c44 (fix: update deployment workflow to Node 20)
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
-<<<<<<< HEAD
-      - name: Install Dependencies
-        run: pip install yfinance pandas
-      - name: Update Benchmarks
-        run: python scripts/update_benchmarks.py
-=======
+          python-version: '3.10'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: pip install yfinance pandas
 
-      - name: Update Benchmarks
+      - name: Run update script
         run: python scripts/update_benchmarks.py
 
->>>>>>> 0d76c44 (fix: update deployment workflow to Node 20)
-      - name: Commit and Push Changes
+      - name: Commit and push changes
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/benchmarks/*.csv
-          git commit -m "chore: nightly benchmark update [skip ci]" || echo "No changes to commit"
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add public/data/benchmarks.json
+          git commit -m "chore: automated benchmark update" || echo "No changes to commit"
           git push
