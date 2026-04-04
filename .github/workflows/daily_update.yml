@@ -27,6 +27,6 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add public/data/benchmarks.json
+          git add public/benchmarks/*.csv
           git commit -m "chore: automated benchmark update" || echo "No changes to commit"
           git push

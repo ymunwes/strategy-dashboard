@@ -90,7 +90,7 @@ function App() {
       for (const symbol of activeBenchmarks) {
         if (!benchmarksData[symbol]) {
           try {
-            const response = await fetch(`/benchmarks/${symbol}.csv`);
+            const response = await fetch(`benchmarks/${symbol}.csv`);
             if (!response.ok) throw new Error(`${symbol} not found`);
             const csv = await response.text();
             // Simple parsing to match StrategyChart requirements
