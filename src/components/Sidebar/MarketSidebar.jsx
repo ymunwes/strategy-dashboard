@@ -1,0 +1,111 @@
+import React from 'react';
+import { Activity, LayoutGrid, CheckCircle, TrendingUp } from 'lucide-react';
+import clsx from 'clsx';
+
+const MarketSidebar = ({ 
+  strategies, 
+  selectedSymbol, 
+  onSelect, 
+  benchmarks, 
+  onToggleBenchmark,
+  chartType,
+  setChartType,
+  lineSource,
+  setLineSource
+}) => {
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-scrollable">
+        <div className="terminal-header">
+          <Activity size={16} className="terminal-status" />
+          <span>STRATEGY_SELECTOR_v1.0</span>
+        </div>
+
+        <div className="sidebar-section">
+          <h3 className="section-title">Active Strategies</h3>
+          <div className="strategy-list">
+            {strategies.map((strat) => (
+              <div
+                key={strat.symbol}
+                className={clsx('strategy-item', selectedSymbol === strat.symbol && 'active')}
+                onClick={() => onSelect(strat.symbol)}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '14px', fontWeight: '500' }}>{strat.symbol}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{strat.description}</span>
+                </div>
+                {selectedSymbol === strat.symbol && (
+                  <CheckCircle size={14} color="var(--accent-cyan)" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="sidebar-section">
+          <h3 className="section-title">Chart Settings</h3>
+          <div className="settings-group">
+            <div className="settings-row">
+              <span className="settings-label">Type</span>
+              <div className="segmented-control">
+                <button 
+                  className={clsx(chartType === 'candlestick' && 'active')}
+                  onClick={() => setChartType('candlestick')}
+                >
+                  Candle
+                </button>
+                <button 
+                  className={clsx(chartType === 'line' && 'active')}
+                  onClick={() => setChartType('line')}
+                >
+                  Line
+                </button>
+              </div>
+            </div>
+
+            {chartType === 'line' && (
+              <div className="settings-row animated-fade-in">
+                <span className="settings-label">Source</span>
+                <div className="segmented-control">
+                  <button 
+                    className={clsx(lineSource === 'close' && 'active')}
+                    onClick={() => setLineSource('close')}
+                  >
+                    Close
+                  </button>
+                  <button 
+                    className={clsx(lineSource === 'open' && 'active')}
+                    onClick={() => setLineSource('open')}
+                  >
+                    Open
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="sidebar-section">
+          <h3 className="section-title">Benchmarks</h3>
+          <div className="toggle-group">
+            {Object.entries(benchmarks).map(([key, enabled]) => (
+              <div key={key} className="toggle-row">
+                <span style={{ fontSize: '14px' }}>{key}</span>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={enabled}
+                    onChange={() => onToggleBenchmark(key)}
+                  />
+                  <span className="slider"></span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+export default MarketSidebar;
