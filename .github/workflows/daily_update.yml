@@ -1,8 +1,16 @@
 name: Daily Benchmark Update
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0d76c44 (fix: update deployment workflow to Node 20)
 on:
   schedule:
     - cron: '0 23 * * 1-5' # 23:00 UTC (6:00 PM ET) every weekday
   workflow_dispatch: # Allow manual trigger
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0d76c44 (fix: update deployment workflow to Node 20)
 jobs:
   update-benchmarks:
     runs-on: ubuntu-latest
@@ -11,14 +19,28 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0d76c44 (fix: update deployment workflow to Node 20)
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+<<<<<<< HEAD
       - name: Install Dependencies
         run: pip install yfinance pandas
       - name: Update Benchmarks
         run: python scripts/update_benchmarks.py
+=======
+
+      - name: Install Dependencies
+        run: pip install yfinance pandas
+
+      - name: Update Benchmarks
+        run: python scripts/update_benchmarks.py
+
+>>>>>>> 0d76c44 (fix: update deployment workflow to Node 20)
       - name: Commit and Push Changes
         run: |
           git config --global user.name "github-actions[bot]"
