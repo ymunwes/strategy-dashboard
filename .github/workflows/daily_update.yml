@@ -1,0 +1,28 @@
+name: Daily Benchmark Update
+on:
+  schedule:
+    - cron: '0 23 * * 1-5' # 23:00 UTC (6:00 PM ET) every weekday
+  workflow_dispatch: # Allow manual trigger
+jobs:
+  update-benchmarks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install Dependencies
+        run: pip install yfinance pandas
+      - name: Update Benchmarks
+        run: python scripts/update_benchmarks.py
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/benchmarks/*.csv
+          git commit -m "chore: nightly benchmark update [skip ci]" || echo "No changes to commit"
+          git push
