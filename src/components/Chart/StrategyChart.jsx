@@ -64,55 +64,67 @@ const StrategyChart = ({ mainData, benchmarksData, showBenchmarks, isNormalized,
   const updateAllSeriesWithNormalization = () => {
     if (!chartRef.current || !seriesRef.current || !isNormalized) return;
 
-    const range = chartRef.current.timeScale().getVisibleRange();
-    if (!range) return;
+    try {
+      const range = chartRef.current.timeScale().getVisibleRange();
+      if (!range) return;
 
-    // Find the strategy anchor (Open of first visible candle)
-    const strategyData = rawMainDataRef.current;
-    if (!strategyData.length) return;
+      const strategyData = rawMainDataRef.current;
+      if (!strategyData.length) return;
 
-    // Sticky 0%: Find the first data point currently in the visible range
-    const firstVisibleStrategy = strategyData.find(d => d.time >= range.from) || strategyData[0];
-    const strategyAnchor = firstVisibleStrategy.open;
+      const firstVisibleStrategy = strategyData.find(d => d.time >= range.from) || strategyData[0];
+      const strategyAnchor = firstVisibleStrategy.open || firstVisibleStrategy.close;
 
-    if (!strategyAnchor || strategyAnchor === 0) return;
+      if (!strategyAnchor || isNaN(strategyAnchor) || strategyAnchor === 0) return;
 
-    isUpdatingRef.current = true;
+      isUpdatingRef.current = true;
 
-    // 1. Update Strategy Series
-    const newStrategyData = strategyData.map(d => {
-      if (chartType === 'line') {
-          const val = lineSource === 'open' ? d.open : d.close;
-          return { time: d.time, value: (val / strategyAnchor - 1) * 100 };
+      // 1. Update Strategy Series
+      const newStrategyData = strategyData.map(d => {
+        if (chartType === 'line') {
+            const val = lineSource === 'open' ? d.open : d.close;
+            const normalizedVal = (val / strategyAnchor - 1) * 100;
+            return { time: d.time, value: normalizedVal };
+        }
+        return {
+            time: d.time,
+            open: (d.open / strategyAnchor - 1) * 100,
+            high: (d.high / strategyAnchor - 1) * 100,
+            low: (d.low / strategyAnchor - 1) * 100,
+            close: (d.close / strategyAnchor - 1) * 100,
+        };
+      }).filter(d => {
+        if (chartType === 'line') return !isNaN(d.value) && isFinite(d.value);
+        return isValidOHLC(d);
+      });
+
+      if (newStrategyData.length) {
+        seriesRef.current.setData(newStrategyData);
       }
-      return {
+
+      // 2. Update Benchmark Series
+      Object.entries(benchmarkSeriesRef.current).forEach(([symbol, series]) => {
+        const bData = rawBenchmarksDataRef.current[symbol];
+        if (!bData || !bData.length) return;
+        
+        const firstVisibleBenchmark = bData.find(d => d.time >= range.from) || bData[0];
+        const bAnchor = firstVisibleBenchmark.open || firstVisibleBenchmark.close;
+        
+        if (!bAnchor || isNaN(bAnchor) || bAnchor === 0) return;
+
+        const newBData = bData.map(d => ({
           time: d.time,
-          open: (d.open / strategyAnchor - 1) * 100,
-          high: (d.high / strategyAnchor - 1) * 100,
-          low: (d.low / strategyAnchor - 1) * 100,
-          close: (d.close / strategyAnchor - 1) * 100,
-      };
-    });
-    seriesRef.current.setData(newStrategyData);
+          value: (d.close / bAnchor - 1) * 100
+        })).filter(d => !isNaN(d.value) && isFinite(d.value));
 
-    // 2. Update Benchmark Series
-    Object.entries(benchmarkSeriesRef.current).forEach(([symbol, series]) => {
-      const bData = rawBenchmarksDataRef.current[symbol];
-      if (!bData || !bData.length) return;
-      
-      const firstVisibleBenchmark = bData.find(d => d.time >= range.from) || bData[0];
-      const bAnchor = firstVisibleBenchmark.open || firstVisibleBenchmark.close;
-      
-      if (!bAnchor) return;
-
-      const newBData = bData.map(d => ({
-        time: d.time,
-        value: (d.close / bAnchor - 1) * 100
-      }));
-      series.setData(newBData);
-    });
-
-    isUpdatingRef.current = false;
+        if (newBData.length) {
+          series.setData(newBData);
+        }
+      });
+    } catch (err) {
+      console.warn("Normalization failed for current range:", err);
+    } finally {
+      isUpdatingRef.current = false;
+    }
   };
 
   // Helper to reset to normal prices
@@ -127,6 +139,9 @@ const StrategyChart = ({ mainData, benchmarksData, showBenchmarks, isNormalized,
             return { time: d.time, value: val };
         }
         return d;
+    }).filter(d => {
+        if (chartType === 'line') return !isNaN(d.value) && isFinite(d.value);
+        return isValidOHLC(d);
     });
     seriesRef.current.setData(strategyDisplayData);
 
@@ -134,7 +149,10 @@ const StrategyChart = ({ mainData, benchmarksData, showBenchmarks, isNormalized,
     Object.entries(benchmarkSeriesRef.current).forEach(([symbol, series]) => {
       const bData = rawBenchmarksDataRef.current[symbol];
       if (!bData) return;
-      series.setData(bData.map(d => ({ time: d.time, value: d.close })));
+      series.setData(bData.map(d => ({ 
+        time: d.time, 
+        value: d.close 
+      })).filter(d => !isNaN(d.value) && isFinite(d.value)));
     });
 
     isUpdatingRef.current = false;
@@ -218,12 +236,24 @@ const StrategyChart = ({ mainData, benchmarksData, showBenchmarks, isNormalized,
       },
       localization: {
         priceFormatter: (price) => {
+          if (price === null || price === undefined) return "";
           if (isNormalized) return `${price.toFixed(2)}%`;
-          return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          return price.toLocaleString(undefined, { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+          });
         }
       }
     });
   }, [isNormalized]);
+
+  // Combined filter for OHLC data to ensure no nulls reach the chart
+  const isValidOHLC = (d) => {
+    return !isNaN(d.open) && isFinite(d.open) &&
+           !isNaN(d.high) && isFinite(d.high) &&
+           !isNaN(d.low) && isFinite(d.low) &&
+           !isNaN(d.close) && isFinite(d.close);
+  };
 
   // Handle Fit Action: Force view to strategy-specific range
   const handleFitContent = () => {
