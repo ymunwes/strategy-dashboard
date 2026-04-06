@@ -7,6 +7,9 @@ const StrategyChart = ({ mainData, benchmarksData, showBenchmarks, isNormalized,
   const seriesRef = useRef();
   const benchmarkSeriesRef = useRef({});
   const lastMainDataRef = useRef();
+  const rawMainDataRef = useRef([]);
+  const rawBenchmarksDataRef = useRef({});
+  const isUpdatingRef = useRef(false);
 
   // 1. Initialize Chart
   useEffect(() => {
@@ -45,28 +48,110 @@ const StrategyChart = ({ mainData, benchmarksData, showBenchmarks, isNormalized,
     };
     window.addEventListener('resize', handleResize);
 
+    // Subscribe to time scale changes for dynamic normalization
+    chartRef.current.timeScale().subscribeVisibleTimeRangeChange(() => {
+      if (isUpdatingRef.current) return;
+      requestAnimationFrame(updateAllSeriesWithNormalization);
+    });
+
     return () => {
       window.removeEventListener('resize', handleResize);
       if (chartRef.current) chartRef.current.remove();
     };
   }, []);
 
-  // 2. Handle Strategy Series & Data Updates (Dynamic Type/Source)
+  // Helper to re-normalize all active series based on current visible range
+  const updateAllSeriesWithNormalization = () => {
+    if (!chartRef.current || !seriesRef.current || !isNormalized) return;
+
+    const range = chartRef.current.timeScale().getVisibleRange();
+    if (!range) return;
+
+    // Find the strategy anchor (Open of first visible candle)
+    const strategyData = rawMainDataRef.current;
+    if (!strategyData.length) return;
+
+    // Sticky 0%: Find the first data point currently in the visible range
+    const firstVisibleStrategy = strategyData.find(d => d.time >= range.from) || strategyData[0];
+    const strategyAnchor = firstVisibleStrategy.open;
+
+    if (!strategyAnchor || strategyAnchor === 0) return;
+
+    isUpdatingRef.current = true;
+
+    // 1. Update Strategy Series
+    const newStrategyData = strategyData.map(d => {
+      if (chartType === 'line') {
+          const val = lineSource === 'open' ? d.open : d.close;
+          return { time: d.time, value: (val / strategyAnchor - 1) * 100 };
+      }
+      return {
+          time: d.time,
+          open: (d.open / strategyAnchor - 1) * 100,
+          high: (d.high / strategyAnchor - 1) * 100,
+          low: (d.low / strategyAnchor - 1) * 100,
+          close: (d.close / strategyAnchor - 1) * 100,
+      };
+    });
+    seriesRef.current.setData(newStrategyData);
+
+    // 2. Update Benchmark Series
+    Object.entries(benchmarkSeriesRef.current).forEach(([symbol, series]) => {
+      const bData = rawBenchmarksDataRef.current[symbol];
+      if (!bData || !bData.length) return;
+      
+      const firstVisibleBenchmark = bData.find(d => d.time >= range.from) || bData[0];
+      const bAnchor = firstVisibleBenchmark.open || firstVisibleBenchmark.close;
+      
+      if (!bAnchor) return;
+
+      const newBData = bData.map(d => ({
+        time: d.time,
+        value: (d.close / bAnchor - 1) * 100
+      }));
+      series.setData(newBData);
+    });
+
+    isUpdatingRef.current = false;
+  };
+
+  // Helper to reset to normal prices
+  const resetAllToAbsolute = () => {
+    if (!chartRef.current || !seriesRef.current) return;
+    isUpdatingRef.current = true;
+
+    // 1. Reset Strategy
+    const strategyDisplayData = rawMainDataRef.current.map(d => {
+        if (chartType === 'line') {
+            const val = lineSource === 'open' ? d.open : d.close;
+            return { time: d.time, value: val };
+        }
+        return d;
+    });
+    seriesRef.current.setData(strategyDisplayData);
+
+    // 2. Reset Benchmarks
+    Object.entries(benchmarkSeriesRef.current).forEach(([symbol, series]) => {
+      const bData = rawBenchmarksDataRef.current[symbol];
+      if (!bData) return;
+      series.setData(bData.map(d => ({ time: d.time, value: d.close })));
+    });
+
+    isUpdatingRef.current = false;
+  };
+
+  // 2. Handle Strategy Series & Data Updates
   useEffect(() => {
     if (!chartRef.current || !mainData.length) return;
-    
-    // Save current range if we want to preserve it
-    const currentRange = chartRef.current.timeScale().getVisibleRange();
+    rawMainDataRef.current = mainData;
 
-    // Remove old series if type changed
     if (seriesRef.current) {
       chartRef.current.removeSeries(seriesRef.current);
     }
 
-    // Create new series based on type
     if (chartType === 'line') {
       seriesRef.current = chartRef.current.addSeries(LineSeries, {
-        color: '#ffffff', // Distinct white color for strategy line
+        color: '#ffffff',
         lineWidth: 3,
         title: 'Strategy',
         priceLineVisible: true,
@@ -81,68 +166,27 @@ const StrategyChart = ({ mainData, benchmarksData, showBenchmarks, isNormalized,
       });
     }
 
-    try {
-      const seenTimes = new Set();
-      const processedData = mainData.filter(d => {
-        if (seenTimes.has(d.time)) return false;
-        if (isNaN(d.time)) return false;
-        seenTimes.add(d.time);
-        return true;
-      }).map(d => {
-        if (chartType === 'line') {
-          const val = lineSource === 'open' ? d.open : d.close;
-          return { time: d.time, value: val };
-        }
-        return d;
-      }).filter(d => {
-        if (chartType === 'line') return !isNaN(d.value);
-        return !isNaN(d.close) && !isNaN(d.open) && !isNaN(d.high) && !isNaN(d.low);
-      });
-
-      if (processedData.length > 0) {
-        seriesRef.current.setData(processedData);
-        
-        // AUTO-FIT only if mainData is NEW (different strategy)
-        const isDataNew = !lastMainDataRef.current || lastMainDataRef.current !== mainData;
-        if (isDataNew) {
-          const start = processedData[0].time;
-          const end = processedData[processedData.length - 1].time;
-          chartRef.current.timeScale().setVisibleRange({ from: start, to: end });
-          lastMainDataRef.current = mainData;
-        }
-      }
-    } catch (err) {
-      console.error("Error setting main chart data:", err);
-    }
-  }, [mainData, chartType, lineSource]);
-
-  // Handle Fit Action: Force view to strategy-specific range
-  const handleFitContent = () => {
-    if (chartRef.current && mainData.length > 0) {
+    // Auto-fit on first load or strategy change
+    const isDataNew = !lastMainDataRef.current || lastMainDataRef.current !== mainData;
+    if (isDataNew) {
       const start = mainData[0].time;
       const end = mainData[mainData.length - 1].time;
       chartRef.current.timeScale().setVisibleRange({ from: start, to: end });
+      lastMainDataRef.current = mainData;
     }
-  };
 
-  // 3. Handle Normalization Mode Toggle (Percentage Mode)
-  useEffect(() => {
-    if (!chartRef.current) return;
-    
-    chartRef.current.applyOptions({
-      rightPriceScale: {
-        mode: isNormalized ? PriceScaleMode.Percentage : PriceScaleMode.Normal,
-      }
-    });
-  }, [isNormalized]);
+    if (isNormalized) updateAllSeriesWithNormalization();
+    else resetAllToAbsolute();
 
-  // 4. Handle Benchmarks
+  }, [mainData, chartType, lineSource, isNormalized]);
+
+  // 4. Handle Benchmarks Updates
   useEffect(() => {
     if (!chartRef.current || !mainData.length) return;
+    rawBenchmarksDataRef.current = benchmarksData;
 
-    // Cleanup old benchmarks
     Object.values(benchmarkSeriesRef.current).forEach(line => {
-        if (chartRef.current) chartRef.current.removeSeries(line);
+      if (chartRef.current) chartRef.current.removeSeries(line);
     });
     benchmarkSeriesRef.current = {};
 
@@ -155,25 +199,40 @@ const StrategyChart = ({ mainData, benchmarksData, showBenchmarks, isNormalized,
           priceLineVisible: false,
           axisLabelVisible: true,
         });
+        benchmarkSeriesRef.current[symbol] = lineSeries;
+      }
+    });
 
-        const processedData = data
-            .map(d => ({ time: d.time, value: d.close }))
-            .filter(d => !isNaN(d.value) && !isNaN(d.time));
+    if (isNormalized) updateAllSeriesWithNormalization();
+    else resetAllToAbsolute();
 
-        const seenTimes = new Set();
-        const dedupedData = processedData.filter(d => {
-          if (seenTimes.has(d.time)) return false;
-          seenTimes.add(d.time);
-          return true;
-        });
+  }, [benchmarksData, showBenchmarks, isNormalized]);
 
-        if (dedupedData.length > 0) {
-          lineSeries.setData(dedupedData);
-          benchmarkSeriesRef.current[symbol] = lineSeries;
+  // Handle Price Scale Mode Changes Manually
+  useEffect(() => {
+    if (!chartRef.current) return;
+    
+    chartRef.current.applyOptions({
+      rightPriceScale: {
+        mode: PriceScaleMode.Normal,
+      },
+      localization: {
+        priceFormatter: (price) => {
+          if (isNormalized) return `${price.toFixed(2)}%`;
+          return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
       }
     });
-  }, [mainData, benchmarksData, showBenchmarks, chartType]); // Re-add if strategy type changes to maintain layering
+  }, [isNormalized]);
+
+  // Handle Fit Action: Force view to strategy-specific range
+  const handleFitContent = () => {
+    if (chartRef.current && mainData.length > 0) {
+      const start = mainData[0].time;
+      const end = mainData[mainData.length - 1].time;
+      chartRef.current.timeScale().setVisibleRange({ from: start, to: end });
+    }
+  };
 
   const getBenchmarkColor = (symbol) => {
     const colors = { SPY: '#00d2ff', QQQ: '#ff9500', SPXL: '#af52de', TQQQ: '#ff2d55' };

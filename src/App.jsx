@@ -101,11 +101,13 @@ function App() {
               
               if (!dateStr || isNaN(Date.parse(dateStr))) return null;
               
+              const openVal = parseFloat(open);
               const closeVal = parseFloat(close);
-              if (isNaN(closeVal)) return null;
+              if (isNaN(openVal) || isNaN(closeVal)) return null;
 
               return {
                 time: Math.floor(new Date(dateStr).getTime() / 1000),
+                open: openVal,
                 close: closeVal
               };
             }).filter(d => d !== null);
