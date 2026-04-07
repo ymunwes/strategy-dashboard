@@ -11,7 +11,9 @@ const MarketSidebar = ({
   chartType,
   setChartType,
   lineSource,
-  setLineSource
+  setLineSource,
+  showDrawdown,
+  onToggleDrawdown
 }) => {
   return (
     <aside className="sidebar">
@@ -82,6 +84,18 @@ const MarketSidebar = ({
                 </div>
               </div>
             )}
+
+            <div className="settings-row" style={{ marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+              <span className="settings-label" style={{ color: showDrawdown ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>Drawdown</span>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={showDrawdown}
+                  onChange={onToggleDrawdown}
+                />
+                <span className="slider"></span>
+              </label>
+            </div>
           </div>
         </div>
 

@@ -46,6 +46,7 @@ function App() {
   const [isNormalized, setIsNormalized] = useState(true);
   const [chartType, setChartType] = useState('candlestick'); // 'candlestick' or 'line'
   const [lineSource, setLineSource] = useState('close'); // 'close' or 'open'
+  const [showDrawdown, setShowDrawdown] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Load strategy list
@@ -108,6 +109,8 @@ function App() {
               return {
                 time: Math.floor(new Date(dateStr).getTime() / 1000),
                 open: openVal,
+                high: parseFloat(high) || openVal,
+                low: parseFloat(low) || closeVal,
                 close: closeVal
               };
             }).filter(d => d !== null);
@@ -164,6 +167,7 @@ function App() {
                 isNormalized={isNormalized}
                 chartType={chartType}
                 lineSource={lineSource}
+                showDrawdown={showDrawdown}
               />
             </ErrorBoundary>
           </div>
@@ -180,6 +184,8 @@ function App() {
         setChartType={setChartType}
         lineSource={lineSource}
         setLineSource={setLineSource}
+        showDrawdown={showDrawdown}
+        onToggleDrawdown={() => setShowDrawdown(!showDrawdown)}
       />
     </div>
   );
