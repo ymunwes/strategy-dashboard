@@ -40,7 +40,7 @@ const parseStrategyDate = (dateStr) => {
  */
 export const fetchStrategyList = async () => {
   try {
-    const response = await fetch(`${BASE_URL}/symbol_info/seed_youngDreamer_strategies.json`);
+    const response = await fetch(`${BASE_URL}/symbol_info/seed_youngDreamer_strategies.json?t=${Date.now()}`);
     const data = await response.json();
     return data.symbols || [];
   } catch (error) {
@@ -55,7 +55,7 @@ export const fetchStrategyList = async () => {
  */
 export const fetchStrategyData = async (symbol) => {
   try {
-    const response = await fetch(`${BASE_URL}/data/${symbol}.csv`);
+    const response = await fetch(`${BASE_URL}/data/${symbol}.csv?t=${Date.now()}`);
     const csvContent = await response.text();
     
     return new Promise((resolve) => {

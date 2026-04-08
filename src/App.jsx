@@ -107,7 +107,7 @@ function App() {
               if (isNaN(openVal) || isNaN(closeVal)) return null;
 
               return {
-                time: Math.floor(new Date(dateStr).getTime() / 1000),
+                time: Math.floor(new Date(`${dateStr}T00:00:00Z`).getTime() / 1000),
                 open: openVal,
                 high: parseFloat(high) || openVal,
                 low: parseFloat(low) || closeVal,
