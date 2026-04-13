@@ -224,12 +224,12 @@ const StrategyChart = ({
       drawdownSeriesRef.current = chartRef.current.addSeries(BaselineSeries, {
         priceScaleId: 'right', 
         baseValue: { type: 'price', price: 0 },
-        topLineColor: 'rgba(255, 59, 48, 0.4)',
-        topFillColor1: 'rgba(255, 59, 48, 0.0)', 
-        topFillColor2: 'rgba(255, 59, 48, 0.0)',
-        bottomLineColor: '#ff3b30',
-        bottomFillColor1: 'rgba(255, 59, 48, 0.5)',
-        bottomFillColor2: 'rgba(255, 59, 48, 0.0)',
+        topLineColor: 'rgba(255, 255, 255, 0.4)',
+        topFillColor1: 'rgba(255, 255, 255, 0.0)', 
+        topFillColor2: 'rgba(255, 255, 255, 0.0)',
+        bottomLineColor: '#ffffff',
+        bottomFillColor1: 'rgba(255, 255, 255, 0.3)',
+        bottomFillColor2: 'rgba(255, 255, 255, 0.0)',
         lineWidth: 2, 
         title: 'Drawdown (%)',
         priceFormat: { type: 'custom', formatter: (v) => v === null ? '' : `${v.toFixed(2)}%`, minMove: 0.01 }
