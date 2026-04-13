@@ -306,11 +306,11 @@ const StrategyChart = ({
         alt="youngDreamers" 
         style={{
           position: 'absolute',
-          top: '60px',
+          top: '35px',
           left: '20px',
           width: '200px',
-          opacity: 0.15,
-          mixBlendMode: 'lighten',
+          opacity: 0.4,
+          mixBlendMode: 'screen',
           pointerEvents: 'none',
           zIndex: 100
         }}
