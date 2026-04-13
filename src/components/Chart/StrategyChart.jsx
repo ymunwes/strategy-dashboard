@@ -301,6 +301,20 @@ const StrategyChart = ({
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
+      <img 
+        src="/strategy-dashboard/logo.jpg" 
+        alt="youngDreamers" 
+        style={{
+          position: 'absolute',
+          top: '60px',
+          left: '20px',
+          width: '200px',
+          opacity: 0.15,
+          mixBlendMode: 'lighten',
+          pointerEvents: 'none',
+          zIndex: 100
+        }}
+      />
       {showDrawdown && (
         <div onMouseDown={handleMouseDown} style={{ position: 'absolute', top: `calc(${paneRatio * 100}% - 4px)`, left: 0, width: '100%', height: '8px', zIndex: 1000, cursor: 'row-resize', display: 'flex', alignItems: 'center' }}>
           <div style={{ width: '100%', height: '1px', backgroundColor: 'rgba(255,255,255,0.6)' }} />
