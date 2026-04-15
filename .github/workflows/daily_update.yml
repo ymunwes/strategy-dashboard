@@ -2,8 +2,9 @@ name: Nightly Benchmark Update
 
 on:
   schedule:
-    - cron: '30 20 * * 1-5' # Runs at 9:30 PM UTC (roughly 5:30 PM ET, after market close)
-    - cron: '0 0 * * *'     # Still runs at midnight UTC for final settlement
+    - cron: '20 20 * * 1-5' # 22:20 Germany Summer time (16:20 ET)
+    - cron: '20 21 * * 1-5' # 22:20 Germany Winter time (16:20 ET)
+    - cron: '0 0 * * *'     # Final midnight sweep
   workflow_dispatch:
 
 permissions:
