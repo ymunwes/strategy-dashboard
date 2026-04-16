@@ -26,19 +26,33 @@ const MarketSidebar = ({
         <div className="sidebar-section">
           <h3 className="section-title">Active Strategies</h3>
           <div className="strategy-list">
-            {strategies.map((strat) => (
-              <div
-                key={strat.symbol}
-                className={clsx('strategy-item', selectedSymbol === strat.symbol && 'active')}
-                onClick={() => onSelect(strat.symbol)}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '14px', fontWeight: '500' }}>{strat.symbol}</span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{strat.description}</span>
+            {Object.entries(
+              strategies.reduce((acc, strat) => {
+                const group = strat.group || 'Ungrouped';
+                if (!acc[group]) acc[group] = [];
+                acc[group].push(strat);
+                return acc;
+              }, {})
+            ).map(([group, groupStrats]) => (
+              <div key={group} className="strategy-group">
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)', padding: '12px 12px 6px 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {group}
                 </div>
-                {selectedSymbol === strat.symbol && (
-                  <CheckCircle size={14} color="var(--accent-cyan)" />
-                )}
+                {groupStrats.map((strat) => (
+                  <div
+                    key={strat.symbol}
+                    className={clsx('strategy-item', selectedSymbol === strat.symbol && 'active')}
+                    onClick={() => onSelect(strat.symbol)}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '500' }}>{strat.symbol}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{strat.description}</span>
+                    </div>
+                    {selectedSymbol === strat.symbol && (
+                      <CheckCircle size={14} color="var(--accent-cyan)" />
+                    )}
+                  </div>
+                ))}
               </div>
             ))}
           </div>
