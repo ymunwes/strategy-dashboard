@@ -1,5 +1,5 @@
-import React from 'react';
-import { Activity, LayoutGrid, CheckCircle, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Activity, LayoutGrid, CheckCircle, TrendingUp, ChevronDown, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 
 const MarketSidebar = ({ 
@@ -15,6 +15,29 @@ const MarketSidebar = ({
   showDrawdown,
   onToggleDrawdown
 }) => {
+  const [expandedGroups, setExpandedGroups] = useState({});
+
+  useEffect(() => {
+    if (selectedSymbol && strategies.length > 0 && Object.keys(expandedGroups).length === 0) {
+      const activeStrat = strategies.find(s => s.symbol === selectedSymbol);
+      if (activeStrat) {
+        const group = activeStrat.group || 'Ungrouped';
+        setExpandedGroups({ [group]: true });
+      }
+    }
+  }, [strategies, selectedSymbol, expandedGroups]);
+
+  const toggleGroup = (group) => {
+    setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
+  };
+
+  const groupedStrategies = strategies.reduce((acc, strat) => {
+    const group = strat.group || 'Ungrouped';
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(strat);
+    return acc;
+  }, {});
+
   return (
     <aside className="sidebar">
       <div className="sidebar-scrollable">
@@ -26,19 +49,30 @@ const MarketSidebar = ({
         <div className="sidebar-section">
           <h3 className="section-title">Active Strategies</h3>
           <div className="strategy-list">
-            {Object.entries(
-              strategies.reduce((acc, strat) => {
-                const group = strat.group || 'Ungrouped';
-                if (!acc[group]) acc[group] = [];
-                acc[group].push(strat);
-                return acc;
-              }, {})
-            ).map(([group, groupStrats]) => (
+            {Object.entries(groupedStrategies).map(([group, groupStrats]) => {
+              const isExpanded = !!expandedGroups[group];
+              return (
               <div key={group} className="strategy-group">
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)', padding: '12px 12px 6px 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {group}
+                <div 
+                  onClick={() => toggleGroup(group)}
+                  style={{ 
+                    fontSize: '11px', 
+                    fontWeight: 'bold', 
+                    color: isExpanded ? 'var(--text-main)' : 'var(--text-muted)', 
+                    padding: '12px 12px 6px 12px', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '0.5px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    userSelect: 'none'
+                  }}
+                >
+                  <span>{group}</span>
+                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 </div>
-                {groupStrats.map((strat) => (
+                {isExpanded && groupStrats.map((strat) => (
                   <div
                     key={strat.symbol}
                     className={clsx('strategy-item', selectedSymbol === strat.symbol && 'active')}
@@ -54,7 +88,7 @@ const MarketSidebar = ({
                   </div>
                 ))}
               </div>
-            ))}
+            )})}
           </div>
         </div>
 
