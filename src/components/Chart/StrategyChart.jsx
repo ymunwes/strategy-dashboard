@@ -298,6 +298,10 @@ const StrategyChart = ({
     chartRef.current.timeScale().setVisibleRange({ from: start, to: end });
   };
 
+  useEffect(() => {
+    handleFitContent();
+  }, [mainData]);
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
