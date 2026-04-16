@@ -44,9 +44,9 @@ function App() {
     TQQQ: false
   });
   const [isNormalized, setIsNormalized] = useState(true);
-  const [chartType, setChartType] = useState('candlestick'); // 'candlestick' or 'line'
+  const [chartType, setChartType] = useState('line'); // 'candlestick' or 'line'
   const [lineSource, setLineSource] = useState('close'); // 'close' or 'open'
-  const [showDrawdown, setShowDrawdown] = useState(false);
+  const [showDrawdown, setShowDrawdown] = useState(true);
   const [loading, setLoading] = useState(true);
 
   // Load strategy list
