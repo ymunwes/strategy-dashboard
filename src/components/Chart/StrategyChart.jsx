@@ -275,7 +275,7 @@ const StrategyChart = ({
 
     if (isNormalized) updateAllSeriesWithNormalization();
     else resetAllToAbsolute();
-  }, [benchmarksData, showBenchmarks, isNormalized, showDrawdown]);
+  }, [benchmarksData, showBenchmarks, isNormalized, showDrawdown, mainData]);
 
   useEffect(() => {
     if (!chartRef.current) return;
