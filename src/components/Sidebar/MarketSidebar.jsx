@@ -31,12 +31,14 @@ const MarketSidebar = ({
     setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
   };
 
-  const groupedStrategies = strategies.reduce((acc, strat) => {
-    const group = strat.group || 'Ungrouped';
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(strat);
-    return acc;
-  }, {});
+  const groupedStrategies = strategies
+    .filter((strat) => strat.active !== 0)
+    .reduce((acc, strat) => {
+      const group = strat.group || 'Ungrouped';
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(strat);
+      return acc;
+    }, {});
 
   return (
     <aside className="sidebar">
