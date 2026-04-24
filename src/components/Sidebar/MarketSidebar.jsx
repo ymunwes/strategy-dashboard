@@ -13,7 +13,9 @@ const MarketSidebar = ({
   lineSource,
   setLineSource,
   showDrawdown,
-  onToggleDrawdown
+  onToggleDrawdown,
+  timeframe,
+  setTimeframe
 }) => {
   const [expandedGroups, setExpandedGroups] = useState({});
 
@@ -98,6 +100,30 @@ const MarketSidebar = ({
           <h3 className="section-title">Chart Settings</h3>
           <div className="settings-group">
             <div className="settings-row">
+              <span className="settings-label">Timeframe</span>
+              <div className="segmented-control">
+                <button 
+                  className={clsx(timeframe === '1D' && 'active')}
+                  onClick={() => setTimeframe('1D')}
+                >
+                  Daily
+                </button>
+                <button 
+                  className={clsx(timeframe === '1W' && 'active')}
+                  onClick={() => setTimeframe('1W')}
+                >
+                  Weekly
+                </button>
+                <button 
+                  className={clsx(timeframe === '1M' && 'active')}
+                  onClick={() => setTimeframe('1M')}
+                >
+                  Monthly
+                </button>
+              </div>
+            </div>
+
+            <div className="settings-row" style={{ marginTop: '12px' }}>
               <span className="settings-label">Type</span>
               <div className="segmented-control">
                 <button 

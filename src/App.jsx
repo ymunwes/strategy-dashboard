@@ -47,6 +47,7 @@ function App() {
   const [chartType, setChartType] = useState('line'); // 'candlestick' or 'line'
   const [lineSource, setLineSource] = useState('close'); // 'close' or 'open'
   const [showDrawdown, setShowDrawdown] = useState(true);
+  const [timeframe, setTimeframe] = useState('1D'); // '1D', '1W', '1M'
   const [loading, setLoading] = useState(true);
 
   // Load strategy list
@@ -168,6 +169,7 @@ function App() {
                 chartType={chartType}
                 lineSource={lineSource}
                 showDrawdown={showDrawdown}
+                timeframe={timeframe}
               />
             </ErrorBoundary>
           </div>
@@ -186,6 +188,8 @@ function App() {
         setLineSource={setLineSource}
         showDrawdown={showDrawdown}
         onToggleDrawdown={() => setShowDrawdown(!showDrawdown)}
+        timeframe={timeframe}
+        setTimeframe={setTimeframe}
       />
     </div>
   );

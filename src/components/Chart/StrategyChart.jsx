@@ -9,7 +9,8 @@ const StrategyChart = ({
   isNormalized, 
   chartType, 
   lineSource,
-  showDrawdown 
+  showDrawdown,
+  timeframe
 }) => {
   const chartContainerRef = useRef();
   const chartRef = useRef();
@@ -107,10 +108,53 @@ const StrategyChart = ({
     document.body.style.cursor = 'default';
   };
 
+  const resampleData = (data, tf) => {
+    if (!data || !data.length || tf === '1D') return data;
+    const resampled = [];
+    let currentPeriod = null;
+    let currentBar = null;
+
+    for (const bar of data) {
+        const d = new Date(bar.time * 1000);
+        let periodStart;
+        if (tf === '1W') {
+            const day = d.getUTCDay();
+            const diff = day === 0 ? -6 : 1 - day; // Monday start
+            d.setUTCDate(d.getUTCDate() + diff);
+            d.setUTCHours(0,0,0,0);
+            periodStart = d.getTime() / 1000;
+        } else if (tf === '1M') {
+            d.setUTCDate(1);
+            d.setUTCHours(0,0,0,0);
+            periodStart = d.getTime() / 1000;
+        } else {
+            periodStart = bar.time; // Fallback
+        }
+
+        if (currentPeriod !== periodStart) {
+            if (currentBar) resampled.push(currentBar);
+            currentPeriod = periodStart;
+            currentBar = {
+                time: periodStart,
+                open: bar.open,
+                high: bar.high,
+                low: bar.low,
+                close: bar.close
+            };
+        } else {
+            currentBar.high = Math.max(currentBar.high, bar.high);
+            currentBar.low = Math.min(currentBar.low, bar.low);
+            currentBar.close = bar.close;
+        }
+    }
+    if (currentBar) resampled.push(currentBar);
+    return resampled;
+  };
+
   const updateAllSeriesWithNormalization = () => {
     if (!chartRef.current || !seriesRef.current) return;
     try {
-      const strategyData = rawMainDataRef.current;
+      const strategyData = resampleData(rawMainDataRef.current, timeframe);
       if (!strategyData.length) return;
 
       const visibleRange = chartRef.current.timeScale().getVisibleRange();
@@ -150,7 +194,7 @@ const StrategyChart = ({
       }
 
       Object.entries(benchmarkSeriesRef.current).forEach(([symbol, series]) => {
-        const bData = rawBenchmarksDataRef.current[symbol];
+        const bData = resampleData(rawBenchmarksDataRef.current[symbol], timeframe);
         if (!bData || !bData.length) return;
 
         const firstBInd = bData.findIndex(d => d.time >= rangeFrom);
@@ -187,7 +231,7 @@ const StrategyChart = ({
     if (!chartRef.current || !seriesRef.current) return;
     try {
       isUpdatingRef.current = true;
-      const strategyData = rawMainDataRef.current;
+      const strategyData = resampleData(rawMainDataRef.current, timeframe);
       if (chartType === 'line') {
         seriesRef.current.setData(strategyData.map(d => ({ time: d.time, value: d.close || d.open || 0 })));
       } else {
@@ -195,7 +239,7 @@ const StrategyChart = ({
       }
       if (showDrawdown && drawdownSeriesRef.current) drawdownSeriesRef.current.setData(calculateDrawdown(strategyData, 'close', null));
       Object.entries(benchmarkSeriesRef.current).forEach(([symbol, series]) => {
-        const bData = rawBenchmarksDataRef.current[symbol];
+        const bData = resampleData(rawBenchmarksDataRef.current[symbol], timeframe);
         if (bData) {
           series.setData(bData.map(d => ({ time: d.time, value: d.close || d.open || 0 })));
           const ddSeries = benchmarkDrawdownSeriesRef.current[symbol];
@@ -250,7 +294,7 @@ const StrategyChart = ({
 
     if (isNormalized) updateAllSeriesWithNormalization();
     else resetAllToAbsolute();
-  }, [mainData, chartType, lineSource, isNormalized, showDrawdown]);
+  }, [mainData, chartType, lineSource, isNormalized, showDrawdown, timeframe]);
 
   useEffect(() => {
     if (!chartRef.current || !mainData.length) return;
@@ -275,7 +319,7 @@ const StrategyChart = ({
 
     if (isNormalized) updateAllSeriesWithNormalization();
     else resetAllToAbsolute();
-  }, [benchmarksData, showBenchmarks, isNormalized, showDrawdown, mainData]);
+  }, [benchmarksData, showBenchmarks, isNormalized, showDrawdown, mainData, timeframe]);
 
   useEffect(() => {
     if (!chartRef.current) return;
