@@ -367,7 +367,7 @@ const StrategyChart = ({
     else resetAllToAbsolute();
   }, [benchmarksData, showBenchmarks, isNormalized, showDrawdown, mainData, timeframe]);
 
-  const COMPARE_COLORS = ['#32d74b', '#ff375f', '#ffd60a', '#bf5af2', '#64d2ff', '#ff9f0a'];
+  const COMPARE_COLORS = ['#ffe620', '#34c759', '#ff2d92', '#5ac8fa', '#5856d6', '#00c7be', '#a2845e'];
   const getCompareColor = (index) => COMPARE_COLORS[index % COMPARE_COLORS.length];
 
   useEffect(() => {
