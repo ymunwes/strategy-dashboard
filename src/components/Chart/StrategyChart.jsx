@@ -306,8 +306,8 @@ const StrategyChart = ({
 
     if (seriesRef.current) try { chartRef.current.removeSeries(seriesRef.current); } catch(e) {}
     seriesRef.current = chartType === 'line' 
-      ? chartRef.current.addSeries(LineSeries, { color: '#ffffff', lineWidth: 3, title: 'Strategy' })
-      : chartRef.current.addSeries(CandlestickSeries, { upColor: '#00c805', downColor: '#ff3b30', borderVisible: false, wickUpColor: '#00c805', wickDownColor: '#ff3b30' });
+      ? chartRef.current.addSeries(LineSeries, { color: '#ffffff', lineWidth: 3, title: 'Strategy', priceLineVisible: false })
+      : chartRef.current.addSeries(CandlestickSeries, { upColor: '#00c805', downColor: '#ff3b30', borderVisible: false, wickUpColor: '#00c805', wickDownColor: '#ff3b30', priceLineVisible: false });
 
     if (showDrawdown) {
       if (drawdownSeriesRef.current) try { chartRef.current.removeSeries(drawdownSeriesRef.current); } catch(e) {}
@@ -322,6 +322,7 @@ const StrategyChart = ({
         bottomFillColor2: 'rgba(255, 255, 255, 0.0)',
         lineWidth: 2, 
         title: 'Drawdown (%)',
+        priceLineVisible: false,
         priceFormat: { type: 'custom', formatter: (v) => v === null ? '' : `${v.toFixed(2)}%`, minMove: 0.01 }
       }, 1);
 
@@ -356,7 +357,7 @@ const StrategyChart = ({
         benchmarkSeriesRef.current[symbol] = chartRef.current.addSeries(LineSeries, { color, lineWidth: 2, title: symbol, priceLineVisible: false });
         if (showDrawdown) {
           benchmarkDrawdownSeriesRef.current[symbol] = chartRef.current.addSeries(LineSeries, {
-            priceScaleId: 'right', color, lineWidth: 2, lineStyle: 2, title: `${symbol} DD`,
+            priceScaleId: 'right', color, lineWidth: 2, lineStyle: 2, title: `${symbol} DD`, priceLineVisible: false,
             priceFormat: { type: 'custom', formatter: (v) => v === null ? '' : `${v.toFixed(2)}%`, minMove: 0.01 }
           }, 1);
         }
@@ -385,7 +386,7 @@ const StrategyChart = ({
         comparedSeriesRef.current[symbol] = chartRef.current.addSeries(LineSeries, { color, lineWidth: 2, title: symbol, priceLineVisible: false });
         if (showDrawdown) {
           comparedDrawdownSeriesRef.current[symbol] = chartRef.current.addSeries(LineSeries, {
-            priceScaleId: 'right', color, lineWidth: 2, lineStyle: 0, title: `${symbol} DD`,
+            priceScaleId: 'right', color, lineWidth: 2, lineStyle: 0, title: `${symbol} DD`, priceLineVisible: false,
             priceFormat: { type: 'custom', formatter: (v) => v === null ? '' : `${v.toFixed(2)}%`, minMove: 0.01 }
           }, 1);
         }
