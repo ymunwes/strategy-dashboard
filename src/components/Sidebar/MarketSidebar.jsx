@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, LayoutGrid, CheckCircle, TrendingUp, ChevronDown, ChevronRight } from 'lucide-react';
+import { Activity, LayoutGrid, CheckCircle, TrendingUp, ChevronDown, ChevronRight, PlusCircle, MinusCircle } from 'lucide-react';
 import clsx from 'clsx';
 
 const MarketSidebar = ({ 
@@ -15,7 +15,9 @@ const MarketSidebar = ({
   showDrawdown,
   onToggleDrawdown,
   timeframe,
-  setTimeframe
+  setTimeframe,
+  comparedSymbols = [],
+  onToggleCompare
 }) => {
   const [expandedGroups, setExpandedGroups] = useState({});
 
@@ -76,21 +78,37 @@ const MarketSidebar = ({
                   <span>{group}</span>
                   {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 </div>
-                {isExpanded && groupStrats.map((strat) => (
+                {isExpanded && groupStrats.map((strat) => {
+                  const isCompared = comparedSymbols.includes(strat.symbol);
+                  return (
                   <div
                     key={strat.symbol}
-                    className={clsx('strategy-item', selectedSymbol === strat.symbol && 'active')}
+                    className={clsx('strategy-item', selectedSymbol === strat.symbol && 'active', isCompared && 'compared')}
                     onClick={() => onSelect(strat.symbol)}
                   >
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                       <span style={{ fontSize: '14px', fontWeight: '500' }}>{strat.symbol}</span>
                       <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{strat.description}</span>
                     </div>
-                    {selectedSymbol === strat.symbol && (
+                    {selectedSymbol === strat.symbol ? (
                       <CheckCircle size={14} color="var(--accent-cyan)" />
+                    ) : (
+                      <div 
+                        className="compare-toggle"
+                        onClick={(e) => onToggleCompare(strat.symbol, e)}
+                        style={{ 
+                          color: isCompared ? 'var(--accent-cyan)' : 'var(--text-muted)', 
+                          cursor: 'pointer', 
+                          opacity: isCompared ? 1 : 0.3,
+                          transition: 'opacity 0.2s',
+                          padding: '4px'
+                        }}
+                      >
+                        {isCompared ? <MinusCircle size={16} /> : <PlusCircle size={16} />}
+                      </div>
                     )}
                   </div>
-                ))}
+                )})}
               </div>
             )})}
           </div>

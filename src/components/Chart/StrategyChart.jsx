@@ -7,10 +7,11 @@ const StrategyChart = ({
   benchmarksData, 
   showBenchmarks, 
   isNormalized, 
-  chartType, 
   lineSource,
   showDrawdown,
-  timeframe
+  timeframe,
+  comparedSymbols = [],
+  comparedData = {}
 }) => {
   const chartContainerRef = useRef();
   const chartRef = useRef();
@@ -18,8 +19,11 @@ const StrategyChart = ({
   const drawdownSeriesRef = useRef();
   const benchmarkSeriesRef = useRef({});
   const benchmarkDrawdownSeriesRef = useRef({});
+  const comparedSeriesRef = useRef({});
+  const comparedDrawdownSeriesRef = useRef({});
   const rawMainDataRef = useRef([]);
   const rawBenchmarksDataRef = useRef({});
+  const rawComparedDataRef = useRef({});
   const isUpdatingRef = useRef(false);
   const updateCallbackRef = useRef();
   
@@ -66,6 +70,8 @@ const StrategyChart = ({
           drawdownSeriesRef.current = null;
           benchmarkSeriesRef.current = {};
           benchmarkDrawdownSeriesRef.current = {};
+          comparedSeriesRef.current = {};
+          comparedDrawdownSeriesRef.current = {};
       }
     };
   }, [showDrawdown]);
@@ -220,6 +226,35 @@ const StrategyChart = ({
           }
         }
       });
+
+      comparedSymbols.forEach((symbol) => {
+        const series = comparedSeriesRef.current[symbol];
+        if (!series) return;
+        const cData = resampleData(rawComparedDataRef.current[symbol], timeframe);
+        if (!cData || !cData.length) return;
+
+        const firstCInd = cData.findIndex(d => d.time >= rangeFrom);
+        const cStartInd = firstCInd === -1 ? 0 : firstCInd;
+        const cFirstPoint = cData[cStartInd];
+        const cAnchor = cFirstPoint ? (cFirstPoint.open || cFirstPoint.close || 0) : 0;
+
+        if (isNormalized && cAnchor !== 0) {
+          let cMaxFactor = 1.0;
+          const mappedC = cData.map(d => ({ time: d.time, value: ((lineSource === 'open' ? (d.open || d.close) : (d.close || d.open)) / cAnchor - 1) * 100 }));
+          if (mappedC.length > 0) series.setData(mappedC);
+
+          const ddSeries = comparedDrawdownSeriesRef.current[symbol];
+          if (showDrawdown && ddSeries) {
+            const ddCMapped = cData.map((d, i) => {
+              if (i < cStartInd) return null;
+              const val = (d.close || d.open) / cAnchor;
+              if (val > cMaxFactor) cMaxFactor = val;
+              return { time: d.time, value: (val / cMaxFactor - 1) * 100 };
+            }).filter(d => d !== null);
+            if (ddCMapped.length > 0) ddSeries.setData(ddCMapped);
+          }
+        }
+      });
     } catch (e) {
       console.warn("Sync err:", e);
     } finally {
@@ -244,6 +279,16 @@ const StrategyChart = ({
           series.setData(bData.map(d => ({ time: d.time, value: d.close || d.open || 0 })));
           const ddSeries = benchmarkDrawdownSeriesRef.current[symbol];
           if (showDrawdown && ddSeries) ddSeries.setData(calculateDrawdown(bData, 'close', null));
+        }
+      });
+      comparedSymbols.forEach((symbol) => {
+        const series = comparedSeriesRef.current[symbol];
+        if (!series) return;
+        const cData = resampleData(rawComparedDataRef.current[symbol], timeframe);
+        if (cData) {
+          series.setData(cData.map(d => ({ time: d.time, value: d.close || d.open || 0 })));
+          const ddSeries = comparedDrawdownSeriesRef.current[symbol];
+          if (showDrawdown && ddSeries) ddSeries.setData(calculateDrawdown(cData, 'close', null));
         }
       });
     } catch (e) {
@@ -310,7 +355,7 @@ const StrategyChart = ({
         benchmarkSeriesRef.current[symbol] = chartRef.current.addSeries(LineSeries, { color, lineWidth: 2, title: symbol, priceLineVisible: false });
         if (showDrawdown) {
           benchmarkDrawdownSeriesRef.current[symbol] = chartRef.current.addSeries(LineSeries, {
-            priceScaleId: 'right', color, lineWidth: 1, lineStyle: 2, title: `${symbol} DD`,
+            priceScaleId: 'right', color, lineWidth: 2, lineStyle: 2, title: `${symbol} DD`,
             priceFormat: { type: 'custom', formatter: (v) => v === null ? '' : `${v.toFixed(2)}%`, minMove: 0.01 }
           }, 1);
         }
@@ -320,6 +365,35 @@ const StrategyChart = ({
     if (isNormalized) updateAllSeriesWithNormalization();
     else resetAllToAbsolute();
   }, [benchmarksData, showBenchmarks, isNormalized, showDrawdown, mainData, timeframe]);
+
+  const COMPARE_COLORS = ['#32d74b', '#ff375f', '#ffd60a', '#bf5af2', '#64d2ff', '#ff9f0a'];
+  const getCompareColor = (index) => COMPARE_COLORS[index % COMPARE_COLORS.length];
+
+  useEffect(() => {
+    if (!chartRef.current || !mainData.length) return;
+    rawComparedDataRef.current = comparedData;
+    Object.values(comparedSeriesRef.current).forEach(s => s && chartRef.current.removeSeries(s));
+    Object.values(comparedDrawdownSeriesRef.current).forEach(s => s && chartRef.current.removeSeries(s));
+    comparedSeriesRef.current = {};
+    comparedDrawdownSeriesRef.current = {};
+
+    comparedSymbols.forEach((symbol, idx) => {
+      const data = comparedData[symbol];
+      if (data && data.length) {
+        const color = getCompareColor(idx);
+        comparedSeriesRef.current[symbol] = chartRef.current.addSeries(LineSeries, { color, lineWidth: 2, title: symbol, priceLineVisible: false });
+        if (showDrawdown) {
+          comparedDrawdownSeriesRef.current[symbol] = chartRef.current.addSeries(LineSeries, {
+            priceScaleId: 'right', color, lineWidth: 2, lineStyle: 0, title: `${symbol} DD`,
+            priceFormat: { type: 'custom', formatter: (v) => v === null ? '' : `${v.toFixed(2)}%`, minMove: 0.01 }
+          }, 1);
+        }
+      }
+    });
+
+    if (isNormalized) updateAllSeriesWithNormalization();
+    else resetAllToAbsolute();
+  }, [comparedData, comparedSymbols, isNormalized, showDrawdown, mainData, timeframe]);
 
   useEffect(() => {
     if (!chartRef.current) return;

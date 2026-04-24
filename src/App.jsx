@@ -85,6 +85,34 @@ function App() {
     loadData();
   }, [selectedSymbol]);
 
+  const [comparedSymbols, setComparedSymbols] = useState([]);
+  const [comparedData, setComparedData] = useState({});
+
+  // Load compared strategies data
+  useEffect(() => {
+    const loadCompared = async () => {
+      const missingSymbols = comparedSymbols.filter(sym => !comparedData[sym]);
+      for (const symbol of missingSymbols) {
+        try {
+          const data = await fetchStrategyData(symbol);
+          setComparedData(prev => ({ ...prev, [symbol]: data }));
+        } catch (e) {
+          console.error(`Failed to load compared strategy ${symbol}:`, e);
+        }
+      }
+    };
+    loadCompared();
+  }, [comparedSymbols]);
+
+  const handleToggleCompare = (symbol, e) => {
+    e.stopPropagation(); // Prevent triggering onSelect for the row
+    setComparedSymbols(prev => 
+      prev.includes(symbol) 
+        ? prev.filter(s => s !== symbol)
+        : [...prev, symbol]
+    );
+  };
+
   // Load benchmark data (local from public folder)
   useEffect(() => {
     const loadBenchmarks = async () => {
@@ -170,6 +198,8 @@ function App() {
                 lineSource={lineSource}
                 showDrawdown={showDrawdown}
                 timeframe={timeframe}
+                comparedSymbols={comparedSymbols}
+                comparedData={comparedData}
               />
             </ErrorBoundary>
           </div>
@@ -190,6 +220,8 @@ function App() {
         onToggleDrawdown={() => setShowDrawdown(!showDrawdown)}
         timeframe={timeframe}
         setTimeframe={setTimeframe}
+        comparedSymbols={comparedSymbols}
+        onToggleCompare={handleToggleCompare}
       />
     </div>
   );
