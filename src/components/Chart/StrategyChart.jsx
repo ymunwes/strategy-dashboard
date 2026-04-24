@@ -7,6 +7,7 @@ const StrategyChart = ({
   benchmarksData, 
   showBenchmarks, 
   isNormalized, 
+  chartType,
   lineSource,
   showDrawdown,
   timeframe,
