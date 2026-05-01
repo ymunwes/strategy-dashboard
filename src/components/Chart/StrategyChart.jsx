@@ -418,6 +418,15 @@ const StrategyChart = ({
     chartRef.current.timeScale().setVisibleRange({ from: start, to: end });
   };
 
+  const handleScreenshot = () => {
+    if (!chartRef.current) return;
+    const canvas = chartRef.current.takeScreenshot(true, false);
+    const link = document.createElement('a');
+    link.download = `youngDreamers-chart-${new Date().toISOString().split('T')[0]}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
   useEffect(() => {
     handleFitContent();
   }, [mainData]);
@@ -447,6 +456,7 @@ const StrategyChart = ({
       <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '10px', pointerEvents: 'none', zIndex: 1001 }}>
         {isNormalized && <div style={{ background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', color: 'var(--accent-cyan)', border: '1px solid var(--border-color)', fontFamily: 'var(--font-mono)' }}>PERFORMANCE_COMPARISON_MODE (WINDOWED)</div>}
         <button onClick={handleFitContent} style={{ pointerEvents: 'auto', background: 'var(--sidebar-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', fontFamily: 'var(--font-mono)', cursor: 'pointer', transition: 'all 0.2s ease', textTransform: 'uppercase' }}>[ FIT_STRATEGY ]</button>
+        <button onClick={handleScreenshot} style={{ pointerEvents: 'auto', background: 'var(--sidebar-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', fontFamily: 'var(--font-mono)', cursor: 'pointer', transition: 'all 0.2s ease', textTransform: 'uppercase' }}>[ SCREENSHOT ]</button>
       </div>
     </div>
   );
