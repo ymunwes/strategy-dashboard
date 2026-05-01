@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, CandlestickSeries, LineSeries, BaselineSeries, PriceScaleMode } from 'lightweight-charts';
 import { calculateDrawdown } from '../../services/indicatorService';
+import { Camera, Copy } from 'lucide-react';
 
 const StrategyChart = ({ 
   mainData, 
@@ -427,6 +428,22 @@ const StrategyChart = ({
     link.click();
   };
 
+  const handleCopyScreenshot = () => {
+    if (!chartRef.current) return;
+    const canvas = chartRef.current.takeScreenshot(true, false);
+    canvas.toBlob(async (blob) => {
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        alert('Screenshot copied to clipboard!');
+      } catch (err) {
+        console.error('Failed to copy screenshot: ', err);
+        alert('Failed to copy screenshot. See console for details.');
+      }
+    });
+  };
+
   useEffect(() => {
     handleFitContent();
   }, [mainData]);
@@ -453,10 +470,11 @@ const StrategyChart = ({
           <div style={{ width: '100%', height: '1px', backgroundColor: 'rgba(255,255,255,0.6)' }} />
         </div>
       )}
-      <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '10px', pointerEvents: 'none', zIndex: 1001 }}>
+      <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '8px', pointerEvents: 'none', zIndex: 1001, alignItems: 'center' }}>
         {isNormalized && <div style={{ background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', color: 'var(--accent-cyan)', border: '1px solid var(--border-color)', fontFamily: 'var(--font-mono)' }}>PERFORMANCE_COMPARISON_MODE (WINDOWED)</div>}
         <button onClick={handleFitContent} style={{ pointerEvents: 'auto', background: 'var(--sidebar-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', fontFamily: 'var(--font-mono)', cursor: 'pointer', transition: 'all 0.2s ease', textTransform: 'uppercase' }}>[ FIT_STRATEGY ]</button>
-        <button onClick={handleScreenshot} style={{ pointerEvents: 'auto', background: 'var(--sidebar-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', fontFamily: 'var(--font-mono)', cursor: 'pointer', transition: 'all 0.2s ease', textTransform: 'uppercase' }}>[ SCREENSHOT ]</button>
+        <button onClick={handleCopyScreenshot} title="Copy to Clipboard" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto', background: 'var(--sidebar-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '4px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s ease' }}><Copy size={16} /></button>
+        <button onClick={handleScreenshot} title="Download PNG" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto', background: 'var(--sidebar-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '4px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s ease' }}><Camera size={16} /></button>
       </div>
     </div>
   );
