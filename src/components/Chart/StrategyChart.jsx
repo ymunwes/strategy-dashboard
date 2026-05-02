@@ -412,6 +412,7 @@ const StrategyChart = ({
   }, [isNormalized]);
 
   const getBenchmarkColor = (s) => ({ SPY: '#00d2ff', QQQ: '#ff9500', SPXL: '#af52de', TQQQ: '#ff2d55' }[s] || '#8e8e93');
+
   const handleFitContent = () => {
     if (!chartRef.current || !mainData.length) return;
     const start = mainData[0].time;
@@ -419,18 +420,50 @@ const StrategyChart = ({
     chartRef.current.timeScale().setVisibleRange({ from: start, to: end });
   };
 
-  const handleScreenshot = () => {
-    if (!chartRef.current) return;
-    const canvas = chartRef.current.takeScreenshot(true, false);
+  const getWatermarkedCanvas = async () => {
+    if (!chartRef.current || !chartContainerRef.current) return null;
+    const baseCanvas = chartRef.current.takeScreenshot(true, false);
+    
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = baseCanvas.width;
+      canvas.height = baseCanvas.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(baseCanvas, 0, 0);
+
+      const img = new Image();
+      img.src = '/strategy-dashboard/logo.jpg';
+      img.onload = () => {
+        ctx.globalAlpha = 0.4;
+        ctx.globalCompositeOperation = 'screen';
+        
+        const pixelRatio = baseCanvas.width / chartContainerRef.current.clientWidth;
+        const x = 20 * pixelRatio;
+        const y = 35 * pixelRatio;
+        const imgWidth = 200 * pixelRatio;
+        const imgHeight = (img.height / img.width) * imgWidth;
+        
+        ctx.drawImage(img, x, y, imgWidth, imgHeight);
+        resolve(canvas);
+      };
+      img.onerror = () => {
+        resolve(baseCanvas); // Fallback
+      };
+    });
+  };
+
+  const handleScreenshot = async () => {
+    const canvas = await getWatermarkedCanvas();
+    if (!canvas) return;
     const link = document.createElement('a');
     link.download = `youngDreamers-chart-${new Date().toISOString().split('T')[0]}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
 
-  const handleCopyScreenshot = () => {
-    if (!chartRef.current) return;
-    const canvas = chartRef.current.takeScreenshot(true, false);
+  const handleCopyScreenshot = async () => {
+    const canvas = await getWatermarkedCanvas();
+    if (!canvas) return;
     canvas.toBlob(async (blob) => {
       try {
         await navigator.clipboard.write([
