@@ -175,8 +175,14 @@ const StrategyChart = ({
       const firstSInd = strategyData.findIndex(d => d.time >= rangeFrom);
       const sStartInd = firstSInd === -1 ? 0 : firstSInd;
       const sFirstPoint = strategyData[sStartInd];
-      // ABSOLUTE ANCHOR: 측정 기준점을 'Open'으로 고정 (User preference for 'Correct' gains)
-      const sAnchor = sFirstPoint ? (sFirstPoint.open || sFirstPoint.close || 0) : 0;
+      
+      const getAnchor = (pt) => {
+        if (!pt) return 0;
+        if (chartType === 'line') return lineSource === 'open' ? (pt.open || pt.close) : (pt.close || pt.open);
+        return pt.open || pt.close || 0;
+      };
+
+      const sAnchor = getAnchor(sFirstPoint);
       const globalAnchorTime = sFirstPoint ? sFirstPoint.time : rangeFrom;
 
       if (isNormalized && sAnchor !== 0) {
@@ -209,7 +215,7 @@ const StrategyChart = ({
         const firstBInd = bData.findIndex(d => d.time >= globalAnchorTime);
         const bStartInd = firstBInd === -1 ? 0 : firstBInd;
         const bFirstPoint = bData[bStartInd];
-        const bAnchor = bFirstPoint ? (bFirstPoint.open || bFirstPoint.close || 0) : 0;
+        const bAnchor = getAnchor(bFirstPoint);
 
         if (isNormalized && bAnchor !== 0) {
           // INITIALIZE MAX AT 1.0: Syncs benchmark DD with the benchmark Open anchor
@@ -239,7 +245,7 @@ const StrategyChart = ({
         const firstCInd = cData.findIndex(d => d.time >= globalAnchorTime);
         const cStartInd = firstCInd === -1 ? 0 : firstCInd;
         const cFirstPoint = cData[cStartInd];
-        const cAnchor = cFirstPoint ? (cFirstPoint.open || cFirstPoint.close || 0) : 0;
+        const cAnchor = getAnchor(cFirstPoint);
 
         if (isNormalized && cAnchor !== 0) {
           let cMaxFactor = 1.0;
