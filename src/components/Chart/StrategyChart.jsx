@@ -177,6 +177,7 @@ const StrategyChart = ({
       const sFirstPoint = strategyData[sStartInd];
       // ABSOLUTE ANCHOR: 측정 기준점을 'Open'으로 고정 (User preference for 'Correct' gains)
       const sAnchor = sFirstPoint ? (sFirstPoint.open || sFirstPoint.close || 0) : 0;
+      const globalAnchorTime = sFirstPoint ? sFirstPoint.time : rangeFrom;
 
       if (isNormalized && sAnchor !== 0) {
         // INITIALIZE MAX AT 1.0: Ensures DD starts from the Open anchor, matching the Gain logic exactly
@@ -205,7 +206,7 @@ const StrategyChart = ({
         const bData = resampleData(rawBenchmarksDataRef.current[symbol], timeframe);
         if (!bData || !bData.length) return;
 
-        const firstBInd = bData.findIndex(d => d.time >= rangeFrom);
+        const firstBInd = bData.findIndex(d => d.time >= globalAnchorTime);
         const bStartInd = firstBInd === -1 ? 0 : firstBInd;
         const bFirstPoint = bData[bStartInd];
         const bAnchor = bFirstPoint ? (bFirstPoint.open || bFirstPoint.close || 0) : 0;
@@ -235,7 +236,7 @@ const StrategyChart = ({
         const cData = resampleData(rawComparedDataRef.current[symbol], timeframe);
         if (!cData || !cData.length) return;
 
-        const firstCInd = cData.findIndex(d => d.time >= rangeFrom);
+        const firstCInd = cData.findIndex(d => d.time >= globalAnchorTime);
         const cStartInd = firstCInd === -1 ? 0 : firstCInd;
         const cFirstPoint = cData[cStartInd];
         const cAnchor = cFirstPoint ? (cFirstPoint.open || cFirstPoint.close || 0) : 0;
