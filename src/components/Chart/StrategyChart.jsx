@@ -13,8 +13,7 @@ const StrategyChart = ({
   showDrawdown,
   timeframe,
   comparedSymbols = [],
-  comparedData = {},
-  initialCapital = null
+  comparedData = {}
 }) => {
   const chartContainerRef = useRef();
   const chartRef = useRef();
@@ -32,7 +31,6 @@ const StrategyChart = ({
   
   const [paneRatio, setPaneRatio] = useState(0.75);
   const isDraggingRef = useRef(false);
-  const [hoveredPoint, setHoveredPoint] = useState(null);
 
   // 1. Initialize Chart
   useEffect(() => {
@@ -422,25 +420,6 @@ const StrategyChart = ({
 
   const getBenchmarkColor = (s) => ({ SPY: '#00d2ff', QQQ: '#ff9500', SPXL: '#af52de', TQQQ: '#ff2d55' }[s] || '#8e8e93');
 
-  // Track crosshair to display precise absolute lifetime ROI
-  useEffect(() => {
-    if (!chartRef.current) return;
-    const handleCrosshair = (param) => {
-      if (!param.time || !seriesRef.current || param.point === undefined || param.point.x < 0 || param.point.y < 0) {
-        setHoveredPoint(null);
-        return;
-      }
-      const dataPoint = rawMainDataRef.current.find(d => d.time === param.time);
-      if (dataPoint) setHoveredPoint(dataPoint);
-    };
-    chartRef.current.subscribeCrosshairMove(handleCrosshair);
-    return () => {
-      if (chartRef.current) {
-        try { chartRef.current.unsubscribeCrosshairMove(handleCrosshair); } catch (e) {}
-      }
-    };
-  }, []);
-
   const handleFitContent = () => {
     if (!chartRef.current || !mainData.length) return;
     const start = mainData[0].time;
@@ -509,12 +488,6 @@ const StrategyChart = ({
     handleFitContent();
   }, [mainData]);
 
-  const displayPoint = hoveredPoint || (mainData.length > 0 ? mainData[mainData.length - 1] : null);
-  const currentPrice = displayPoint ? (displayPoint.close || displayPoint.open) : 0;
-  const lifetimeReturn = (initialCapital && currentPrice) ? ((currentPrice / initialCapital) - 1) * 100 : null;
-  const isPositive = lifetimeReturn >= 0;
-  const roiColor = isPositive ? '#00c805' : '#ff3b30';
-
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
@@ -539,11 +512,6 @@ const StrategyChart = ({
       )}
       <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '8px', pointerEvents: 'none', zIndex: 1001, alignItems: 'center' }}>
         {isNormalized && <div style={{ background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', color: 'var(--accent-cyan)', border: '1px solid var(--border-color)', fontFamily: 'var(--font-mono)' }}>PERFORMANCE_COMPARISON_MODE (WINDOWED)</div>}
-        {isNormalized && initialCapital && lifetimeReturn !== null && (
-          <div style={{ background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', color: roiColor, border: '1px solid var(--border-color)', fontFamily: 'var(--font-mono)' }}>
-            LIFETIME_ROI: {isPositive ? '+' : ''}{lifetimeReturn.toFixed(2)}%
-          </div>
-        )}
         <button onClick={handleFitContent} style={{ pointerEvents: 'auto', background: 'var(--sidebar-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', fontFamily: 'var(--font-mono)', cursor: 'pointer', transition: 'all 0.2s ease', textTransform: 'uppercase' }}>[ FIT_STRATEGY ]</button>
         <button onClick={handleCopyScreenshot} title="Copy to Clipboard" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto', background: 'var(--sidebar-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '4px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s ease' }}><Copy size={16} /></button>
         <button onClick={handleScreenshot} title="Download PNG" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto', background: 'var(--sidebar-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '4px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s ease' }}><Camera size={16} /></button>
