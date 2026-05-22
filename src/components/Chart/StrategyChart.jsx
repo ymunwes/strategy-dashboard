@@ -49,9 +49,12 @@ const StrategyChart = ({
       crosshair: { mode: 0, vertLine: { color: '#758696', style: 1 }, horzLine: { color: '#758696', style: 1 } },
     });
 
-    chartRef.current.timeScale().subscribeVisibleTimeRangeChange(() => {
-      // Empty: We no longer recalculate normalization anchors on scroll.
-    });
+    const handleRangeChange = () => {
+      if (isUpdatingRef.current) return;
+      if (updateCallbackRef.current) requestAnimationFrame(updateCallbackRef.current);
+    };
+
+    chartRef.current.timeScale().subscribeVisibleTimeRangeChange(handleRangeChange);
 
     setTimeout(() => {
       if (chartRef.current && mainData.length) {
@@ -162,10 +165,15 @@ const StrategyChart = ({
       const strategyData = resampleData(rawMainDataRef.current, timeframe);
       if (!strategyData.length) return;
 
+      const visibleRange = chartRef.current.timeScale().getVisibleRange();
+      let rangeFrom = visibleRange?.from;
+      if (!rangeFrom && strategyData.length > 0) rangeFrom = strategyData[0].time;
+      if (!rangeFrom) return;
+
       isUpdatingRef.current = true;
 
-      // INCEPTION ANCHOR: Always use index 0 for the absolute start
-      const sStartInd = 0;
+      const firstSInd = strategyData.findIndex(d => d.time >= rangeFrom);
+      const sStartInd = firstSInd === -1 ? 0 : firstSInd;
       const sFirstPoint = strategyData[sStartInd];
       
       const getAnchor = (pt) => {
@@ -175,6 +183,7 @@ const StrategyChart = ({
       };
 
       const sAnchor = getAnchor(sFirstPoint);
+      const globalAnchorTime = sFirstPoint ? sFirstPoint.time : rangeFrom;
 
       if (isNormalized && sAnchor !== 0) {
         // INITIALIZE MAX AT 1.0: Ensures DD starts from the Open anchor, matching the Gain logic exactly
@@ -203,7 +212,8 @@ const StrategyChart = ({
         const bData = resampleData(rawBenchmarksDataRef.current[symbol], timeframe);
         if (!bData || !bData.length) return;
 
-        const bStartInd = 0;
+        const firstBInd = bData.findIndex(d => d.time >= globalAnchorTime);
+        const bStartInd = firstBInd === -1 ? 0 : firstBInd;
         const bFirstPoint = bData[bStartInd];
         const bAnchor = getAnchor(bFirstPoint);
 
@@ -232,7 +242,8 @@ const StrategyChart = ({
         const cData = resampleData(rawComparedDataRef.current[symbol], timeframe);
         if (!cData || !cData.length) return;
 
-        const cStartInd = 0;
+        const firstCInd = cData.findIndex(d => d.time >= globalAnchorTime);
+        const cStartInd = firstCInd === -1 ? 0 : firstCInd;
         const cFirstPoint = cData[cStartInd];
         const cAnchor = getAnchor(cFirstPoint);
 
@@ -500,7 +511,7 @@ const StrategyChart = ({
         </div>
       )}
       <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '8px', pointerEvents: 'none', zIndex: 1001, alignItems: 'center' }}>
-        {isNormalized && <div style={{ background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', color: 'var(--accent-cyan)', border: '1px solid var(--border-color)', fontFamily: 'var(--font-mono)' }}>PERFORMANCE_COMPARISON_MODE (INCEPTION)</div>}
+        {isNormalized && <div style={{ background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', color: 'var(--accent-cyan)', border: '1px solid var(--border-color)', fontFamily: 'var(--font-mono)' }}>PERFORMANCE_COMPARISON_MODE (WINDOWED)</div>}
         <button onClick={handleFitContent} style={{ pointerEvents: 'auto', background: 'var(--sidebar-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', fontFamily: 'var(--font-mono)', cursor: 'pointer', transition: 'all 0.2s ease', textTransform: 'uppercase' }}>[ FIT_STRATEGY ]</button>
         <button onClick={handleCopyScreenshot} title="Copy to Clipboard" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto', background: 'var(--sidebar-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '4px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s ease' }}><Copy size={16} /></button>
         <button onClick={handleScreenshot} title="Download PNG" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto', background: 'var(--sidebar-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '4px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s ease' }}><Camera size={16} /></button>
