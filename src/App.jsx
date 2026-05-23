@@ -41,7 +41,8 @@ function App() {
     SPY: true,
     QQQ: false,
     SPXL: false,
-    TQQQ: false
+    TQQQ: false,
+    GRNY: false
   });
   const [isNormalized, setIsNormalized] = useState(true);
   const [chartType, setChartType] = useState('line'); // 'candlestick' or 'line'

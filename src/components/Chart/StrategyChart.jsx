@@ -418,7 +418,7 @@ const StrategyChart = ({
     });
   }, [isNormalized]);
 
-  const getBenchmarkColor = (s) => ({ SPY: '#00d2ff', QQQ: '#ff9500', SPXL: '#af52de', TQQQ: '#ff2d55' }[s] || '#8e8e93');
+  const getBenchmarkColor = (s) => ({ SPY: '#00d2ff', QQQ: '#ff9500', SPXL: '#af52de', TQQQ: '#ff2d55', GRNY: '#34c759' }[s] || '#8e8e93');
 
   const handleFitContent = () => {
     if (!chartRef.current || !mainData.length) return;
