@@ -86,6 +86,9 @@ function App() {
     loadData();
   }, [selectedSymbol]);
 
+  const activeStrategy = strategies.find(s => s.symbol === selectedSymbol);
+  const deposits = activeStrategy?.deposits || [];
+
   const [comparedSymbols, setComparedSymbols] = useState([]);
   const [comparedData, setComparedData] = useState({});
 
@@ -201,6 +204,7 @@ function App() {
                 timeframe={timeframe}
                 comparedSymbols={comparedSymbols}
                 comparedData={comparedData}
+                deposits={deposits}
               />
             </ErrorBoundary>
           </div>

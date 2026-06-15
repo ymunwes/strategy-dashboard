@@ -13,7 +13,8 @@ const StrategyChart = ({
   showDrawdown,
   timeframe,
   comparedSymbols = [],
-  comparedData = {}
+  comparedData = {},
+  deposits = []
 }) => {
   const chartContainerRef = useRef();
   const chartRef = useRef();
@@ -172,35 +173,60 @@ const StrategyChart = ({
 
       isUpdatingRef.current = true;
 
+      // 1. Calculate TWR Bases for Strategy (Faux Base Capital)
+      const depositsByDate = {};
+      deposits.forEach(dep => { depositsByDate[dep.date] = dep.amount; });
+
+      let currentTwrBase = strategyData.length > 0 ? (strategyData[0].open || strategyData[0].close || 1) : 1;
+      const sTwrBases = strategyData.map(d => {
+        // We use the exact ISO date string to match "YYYY-MM-DD" from the JSON
+        const dateStr = new Date(d.time * 1000).toISOString().split('T')[0];
+        const dep = depositsByDate[dateStr];
+        if (dep) {
+          const vAfter = lineSource === 'open' ? (d.open || d.close) : (d.close || d.open);
+          const vBefore = vAfter - dep;
+          if (vBefore > 0) currentTwrBase = currentTwrBase * (vAfter / vBefore);
+        }
+        return currentTwrBase;
+      });
+
       const firstSInd = strategyData.findIndex(d => d.time >= rangeFrom);
       const sStartInd = firstSInd === -1 ? 0 : firstSInd;
       const sFirstPoint = strategyData[sStartInd];
       
-      const getAnchor = (pt) => {
+      const getNormalizedValue = (pt, base) => {
         if (!pt) return 0;
-        if (chartType === 'line') return lineSource === 'open' ? (pt.open || pt.close) : (pt.close || pt.open);
-        return pt.open || pt.close || 0;
+        const val = lineSource === 'open' ? (pt.open || pt.close) : (pt.close || pt.open);
+        return val / base;
       };
 
-      const sAnchor = getAnchor(sFirstPoint);
+      const sAnchorNormalized = sFirstPoint ? getNormalizedValue(sFirstPoint, sTwrBases[sStartInd]) : 1;
       const globalAnchorTime = sFirstPoint ? sFirstPoint.time : rangeFrom;
 
-      if (isNormalized && sAnchor !== 0) {
-        // INITIALIZE MAX AT 1.0: Ensures DD starts from the Open anchor, matching the Gain logic exactly
+      if (isNormalized && sAnchorNormalized !== 0) {
+        // INITIALIZE MAX AT 1.0: Ensures DD starts from the Open anchor
         let sMaxFactor = 1.0; 
-        const mapped = strategyData.map(d => {
-          const factor = (lineSource === 'open' ? (d.open || d.close) : (d.close || d.open)) / sAnchor;
+        const mapped = strategyData.map((d, i) => {
+          const valNormalized = getNormalizedValue(d, sTwrBases[i]);
+          const factor = valNormalized / sAnchorNormalized;
           if (chartType === 'line') return { time: d.time, value: (factor - 1) * 100 };
-          return { time: d.time, open: (d.open / sAnchor - 1) * 100, high: (d.high / sAnchor - 1) * 100, low: (d.low / sAnchor - 1) * 100, close: (d.close / sAnchor - 1) * 100 };
+          return { 
+            time: d.time, 
+            open: ((d.open / sTwrBases[i]) / sAnchorNormalized - 1) * 100, 
+            high: ((d.high / sTwrBases[i]) / sAnchorNormalized - 1) * 100, 
+            low: ((d.low / sTwrBases[i]) / sAnchorNormalized - 1) * 100, 
+            close: ((d.close / sTwrBases[i]) / sAnchorNormalized - 1) * 100 
+          };
         });
         if (mapped.length > 0) seriesRef.current.setData(mapped);
 
         if (showDrawdown && drawdownSeriesRef.current) {
           const ddMapped = strategyData.map((d, i) => {
             if (i < sStartInd) return null;
-            const val = (d.close || d.open) / sAnchor;
-            if (val > sMaxFactor) sMaxFactor = val;
-            return { time: d.time, value: (val / sMaxFactor - 1) * 100 };
+            const valNormalized = getNormalizedValue(d, sTwrBases[i]);
+            const factor = valNormalized / sAnchorNormalized;
+            if (factor > sMaxFactor) sMaxFactor = factor;
+            return { time: d.time, value: (factor / sMaxFactor - 1) * 100 };
           }).filter(d => d !== null);
           if (ddMapped.length > 0) drawdownSeriesRef.current.setData(ddMapped);
         }
