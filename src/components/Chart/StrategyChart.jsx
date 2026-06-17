@@ -200,6 +200,12 @@ const StrategyChart = ({
         return val / base;
       };
 
+      const getAnchor = (pt) => {
+        if (!pt) return 0;
+        if (chartType === 'line') return lineSource === 'open' ? (pt.open || pt.close) : (pt.close || pt.open);
+        return pt.open || pt.close || 0;
+      };
+
       const sAnchorNormalized = sFirstPoint ? getNormalizedValue(sFirstPoint, sTwrBases[sStartInd]) : 1;
       const globalAnchorTime = sFirstPoint ? sFirstPoint.time : rangeFrom;
 
