@@ -45,6 +45,9 @@ function App() {
     GRNY: false
   });
   const [isNormalized, setIsNormalized] = useState(true);
+  const [appMode, setAppMode] = useState('single'); // 'single' or 'portfolio'
+  const [portfolioWeights, setPortfolioWeights] = useState({});
+  const [portfolioDataMap, setPortfolioDataMap] = useState({});
   const [chartType, setChartType] = useState('line'); // 'candlestick' or 'line'
   const [lineSource, setLineSource] = useState('close'); // 'close' or 'open'
   const [showDrawdown, setShowDrawdown] = useState(true);
@@ -117,6 +120,96 @@ function App() {
     );
   };
 
+  // Load portfolio data
+  useEffect(() => {
+    if (appMode !== 'portfolio') return;
+    const loadPortfolioData = async () => {
+      const symbols = Object.keys(portfolioWeights);
+      const missing = symbols.filter(sym => !portfolioDataMap[sym]);
+      for (const sym of missing) {
+        try {
+          const data = await fetchStrategyData(sym);
+          setPortfolioDataMap(prev => ({ ...prev, [sym]: data }));
+        } catch (e) {
+          console.error(`Failed to load portfolio strategy ${sym}:`, e);
+        }
+      }
+    };
+    loadPortfolioData();
+  }, [portfolioWeights, appMode, portfolioDataMap]);
+
+  // Aggregate Portfolio Data (Option B: Daily Rebalanced Return Index)
+  const aggregatedPortfolioData = React.useMemo(() => {
+    if (appMode !== 'portfolio') return null;
+    const symbols = Object.keys(portfolioWeights).filter(sym => portfolioWeights[sym] > 0);
+    if (symbols.length === 0) return [];
+    
+    const pointers = {};
+    const prevValues = {};
+    let currentIndex = 10000;
+    const result = [];
+    
+    const timeSet = new Set();
+    symbols.forEach(sym => {
+       pointers[sym] = 0;
+       if (portfolioDataMap[sym]) {
+          portfolioDataMap[sym].forEach(d => timeSet.add(d.time));
+       }
+    });
+    const times = Array.from(timeSet).sort((a,b) => a - b);
+    
+    for (const t of times) {
+       let totalActiveWeight = 0;
+       let dailyReturnSum = 0;
+       let hasAnyData = false;
+       const currentVals = {};
+
+       symbols.forEach(sym => {
+          const dataArr = portfolioDataMap[sym];
+          if (!dataArr) return;
+          
+          let p = pointers[sym];
+          while (p < dataArr.length && dataArr[p].time < t) p++;
+          pointers[sym] = p;
+          
+          if (p < dataArr.length && dataArr[p].time === t) {
+             const pt = dataArr[p];
+             const val = pt.close || pt.open;
+             currentVals[sym] = val;
+             if (prevValues[sym] !== undefined) {
+                 totalActiveWeight += portfolioWeights[sym];
+             }
+             hasAnyData = true;
+          }
+       });
+
+       if (totalActiveWeight > 0) {
+          symbols.forEach(sym => {
+             if (currentVals[sym] !== undefined && prevValues[sym] !== undefined) {
+                 const normWeight = portfolioWeights[sym] / totalActiveWeight;
+                 const ret = (currentVals[sym] / prevValues[sym]) - 1;
+                 dailyReturnSum += (normWeight * ret);
+             }
+          });
+          currentIndex = currentIndex * (1 + dailyReturnSum);
+       }
+
+       if (hasAnyData) {
+          result.push({
+             time: t,
+             open: currentIndex, 
+             high: currentIndex, 
+             low: currentIndex,  
+             close: currentIndex
+          });
+       }
+       
+       Object.assign(prevValues, currentVals);
+    }
+    
+    return result;
+  }, [appMode, portfolioWeights, portfolioDataMap]);
+
   // Load benchmark data (local from public folder)
   useEffect(() => {
     const loadBenchmarks = async () => {
@@ -167,7 +260,7 @@ function App() {
         <header className="terminal-header" style={{ width: '100%', justifyContent: 'space-between', borderLeft: 'none' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <Activity size={16} className="terminal-status" />
-            <span style={{ fontWeight: '600' }}>{selectedSymbol || 'BOOTING...'}</span>
+            <span style={{ fontWeight: '600' }}>{appMode === 'portfolio' ? 'PORTFOLIO_BUILDER' : (selectedSymbol || 'BOOTING...')}</span>
             <span style={{ color: 'var(--text-muted)', marginLeft: '1rem', size: '12px' }}>
               RELIABLE_CHART_v8.0
             </span>
@@ -194,7 +287,7 @@ function App() {
           <div style={{ flex: 1, position: 'relative' }}>
             <ErrorBoundary>
               <StrategyChart 
-                mainData={mainData} 
+                mainData={appMode === 'portfolio' ? aggregatedPortfolioData : mainData} 
                 benchmarksData={benchmarksData} 
                 showBenchmarks={showBenchmarks}
                 isNormalized={isNormalized}
@@ -202,9 +295,9 @@ function App() {
                 lineSource={lineSource}
                 showDrawdown={showDrawdown}
                 timeframe={timeframe}
-                comparedSymbols={comparedSymbols}
+                comparedSymbols={appMode === 'portfolio' ? [] : comparedSymbols}
                 comparedData={comparedData}
-                deposits={deposits}
+                deposits={appMode === 'portfolio' ? [] : deposits}
               />
             </ErrorBoundary>
           </div>
@@ -227,6 +320,10 @@ function App() {
         setTimeframe={setTimeframe}
         comparedSymbols={comparedSymbols}
         onToggleCompare={handleToggleCompare}
+        appMode={appMode}
+        setAppMode={setAppMode}
+        portfolioWeights={portfolioWeights}
+        setPortfolioWeights={setPortfolioWeights}
       />
     </div>
   );

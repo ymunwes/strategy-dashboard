@@ -17,7 +17,11 @@ const MarketSidebar = ({
   timeframe,
   setTimeframe,
   comparedSymbols = [],
-  onToggleCompare
+  onToggleCompare,
+  appMode,
+  setAppMode,
+  portfolioWeights,
+  setPortfolioWeights
 }) => {
   const [expandedGroups, setExpandedGroups] = useState({});
 
@@ -50,6 +54,13 @@ const MarketSidebar = ({
         <div className="terminal-header">
           <Activity size={16} className="terminal-status" />
           <span>STRATEGY_SELECTOR_v1.0</span>
+        </div>
+
+        <div className="sidebar-section" style={{ paddingBottom: 0, paddingTop: '16px' }}>
+           <div className="segmented-control" style={{ marginBottom: '16px' }}>
+             <button className={clsx(appMode === 'single' && 'active')} onClick={() => setAppMode('single')}>SINGLE</button>
+             <button className={clsx(appMode === 'portfolio' && 'active')} onClick={() => setAppMode('portfolio')}>PORTFOLIO</button>
+           </div>
         </div>
 
         <div className="sidebar-section">
@@ -90,21 +101,52 @@ const MarketSidebar = ({
                       <span style={{ fontSize: '14px', fontWeight: '500' }}>{strat.symbol}</span>
                       <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{strat.description}</span>
                     </div>
-                    {selectedSymbol === strat.symbol ? (
-                      <CheckCircle size={14} color="var(--accent-cyan)" />
+                    {appMode === 'single' ? (
+                      selectedSymbol === strat.symbol ? (
+                        <CheckCircle size={14} color="var(--accent-cyan)" />
+                      ) : (
+                        <div 
+                          className="compare-toggle"
+                          onClick={(e) => onToggleCompare(strat.symbol, e)}
+                          style={{ 
+                            color: isCompared ? 'var(--accent-cyan)' : 'var(--text-muted)', 
+                            cursor: 'pointer', 
+                            opacity: isCompared ? 1 : 0.3,
+                            transition: 'opacity 0.2s',
+                            padding: '4px'
+                          }}
+                        >
+                          {isCompared ? <MinusCircle size={16} /> : <PlusCircle size={16} />}
+                        </div>
+                      )
                     ) : (
-                      <div 
-                        className="compare-toggle"
-                        onClick={(e) => onToggleCompare(strat.symbol, e)}
-                        style={{ 
-                          color: isCompared ? 'var(--accent-cyan)' : 'var(--text-muted)', 
-                          cursor: 'pointer', 
-                          opacity: isCompared ? 1 : 0.3,
-                          transition: 'opacity 0.2s',
-                          padding: '4px'
-                        }}
-                      >
-                        {isCompared ? <MinusCircle size={16} /> : <PlusCircle size={16} />}
+                      <div className="portfolio-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
+                        {portfolioWeights[strat.symbol] !== undefined && (
+                          <input 
+                             type="number" 
+                             min="0"
+                             step="0.1"
+                             value={portfolioWeights[strat.symbol]}
+                             onChange={(e) => {
+                               const val = parseFloat(e.target.value) || 0;
+                               setPortfolioWeights({ ...portfolioWeights, [strat.symbol]: val });
+                             }}
+                             style={{ width: '45px', background: 'var(--bg-main)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', padding: '2px 4px', fontSize: '11px', outline: 'none' }}
+                          />
+                        )}
+                        <label className="switch">
+                          <input 
+                            type="checkbox" 
+                            checked={portfolioWeights[strat.symbol] !== undefined} 
+                            onChange={(e) => {
+                               const w = { ...portfolioWeights };
+                               if (e.target.checked) w[strat.symbol] = 1.0;
+                               else delete w[strat.symbol];
+                               setPortfolioWeights(w);
+                            }}
+                          />
+                          <span className="slider"></span>
+                        </label>
                       </div>
                     )}
                   </div>
